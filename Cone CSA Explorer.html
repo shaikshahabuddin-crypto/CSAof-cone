@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cone CSA Explorer</title>
+<style>
+:root{--bg:#f4f7fb;--card:#fff;--ink:#14213d;--mut:#5a6785;--line:#d9e1ee;--r:#e4572e;--h:#1f9d55;--l:#7b3fe4;--arc:#e59a00;--pri:#2563eb;--ok:#dcfce7;--bad:#fee2e2;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f172a;--card:#1e293b;--ink:#f1f5f9;--mut:#a5b4cc;--line:#334155;--ok:#14532d;--bad:#7f1d1d;color-scheme:dark}}
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:clamp(16px,1.5vw,21px)}
+header{padding:12px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+h1{margin:0;font-size:1.35em}
+.dots{display:flex;gap:6px;margin-left:auto}.dots i{width:14px;height:14px;border-radius:50%;background:var(--line)}.dots i.on{background:var(--pri)}.dots i.done{background:#93b4f5}
+main{display:grid;grid-template-columns:1.1fr 1fr;gap:16px;padding:0 16px 16px;max-width:1500px;margin:auto}
+@media(max-width:900px){main{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:0 2px 8px #0001}
+#stage{position:relative;height:clamp(300px,52vh,620px);padding:0;overflow:hidden}
+canvas{width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+.hint{position:absolute;left:12px;bottom:8px;color:var(--mut);font-size:.8em;pointer-events:none}
+.ctl{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.ctl label{display:flex;align-items:center;gap:6px;font-weight:600}
+input[type=range]{accent-color:var(--pri);width:min(180px,40vw)}
+button{font:inherit;font-weight:700;border:0;border-radius:12px;padding:10px 18px;background:var(--pri);color:#fff;cursor:pointer;min-height:44px}
+button.sec{background:var(--line);color:var(--ink)}button.rev{background:var(--arc);color:#14213d}
+button:disabled{opacity:.4;cursor:default}
+.read{font-weight:700;margin-top:8px;display:flex;gap:14px;flex-wrap:wrap}
+.read span{padding:3px 10px;border-radius:8px;color:#fff}
+h2{margin:.1em 0 .4em;font-size:1.35em}
+.big{font-size:1.25em;margin:.5em 0}
+.q{background:#eef2ff;border-left:6px solid var(--pri);padding:10px 14px;border-radius:8px;margin:12px 0;font-weight:600;color:#14213d}
+.ans{background:var(--ok);border-radius:10px;padding:10px 14px;margin-top:8px;color:#14213d}
+.opt{display:block;width:100%;text-align:left;margin:8px 0;background:var(--card);color:var(--ink);border:2px solid var(--line)}
+.opt.ok{background:var(--ok);border-color:#16a34a}.opt.no{background:var(--bad);border-color:#dc2626}
+.fb{margin:6px 0;font-weight:600}
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1.1;margin:0 3px}
+.frac b{border-top:2px solid currentColor;padding:0 3px;font-weight:inherit}
+.f{font-size:1.5em;text-align:center;padding:10px;background:var(--bg);border-radius:12px;margin:10px 0;overflow-x:auto}
+.blank{display:inline-block;min-width:1.6em;border-bottom:3px dashed var(--mut);text-align:center}
+.r{color:var(--r)}.hh{color:var(--h)}.l{color:var(--l)}.a{color:var(--arc)}
+input[type=number]{font:inherit;width:7em;padding:8px;border-radius:8px;border:2px solid var(--line);background:var(--card);color:var(--ink)}
+.nav{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+</style></head><body>
+<header><h1>🔺 Cone Explorer: Curved Surface Area</h1><div class="dots" id="dots"></div></header>
+<main>
+<section>
+ <div class="card" id="stage"><canvas id="cv"></canvas><div class="hint">Drag to rotate</div></div>
+ <div class="card ctl" style="margin-top:12px">
+  <label><span class="r">r</span><input type="range" id="rs" min="2" max="6" step="0.5" value="3"></label>
+  <label><span class="hh">h</span><input type="range" id="hs" min="2" max="8" step="0.5" value="4"></label>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;width:100%;align-items:center"><b>Type values:</b><label><span class="r">r</span><input type="number" id="rn" min="0.5" max="30" step="0.1" style="width:5.5em"></label><label><span class="hh">h</span><input type="number" id="hn" min="0.5" max="30" step="0.1" style="width:5.5em"></label><label><span class="l">l</span><input type="number" id="ln" min="0.5" max="40" step="0.1" style="width:5.5em"></label><span id="msg" style="color:#dc2626;font-weight:600;font-size:.85em"></span><span style="width:100%;color:var(--mut);font-size:.8em">Change r or h and l updates. Change l and h is found (r stays).</span></div>
+  <div id="unw" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><label>Unroll<input type="range" id="ts" min="0" max="1" step="0.005" value="0"></label><button class="sec" id="play">▶ Unroll</button></div>
+  <div class="read" id="read" style="width:100%"></div>
+ </div>
+</section>
+<section class="card"><h2 id="title"></h2><div id="body"></div><div id="ans"></div>
+ <div class="nav"><button class="sec" id="prev">◀ Previous</button><button id="next">Next ▶</button><button class="rev" id="rev">💡 Reveal Answer</button><button class="sec" id="reset">↺ Reset</button></div>
+</section>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+let r=3,h=4,t=0,tT=0,step=0,yaw=.6,elev=.35;
+const L=()=>Math.hypot(r,h), F=(a,b)=>`<span class="frac">${a}<b>${b}</b></span>`;
+const fmt=x=>(Math.round(x*100)/100).toString();
+const revealed={}, S={pred:null,tent:null,quiz:[null,null,null]};
+const HALF=F('1','2');
+const steps=[
+{title:'1. Meet the cone',body:()=>`<p class="big">Drag the cone. Change <b class="r">r</b> and <b class="hh">h</b>.</p>
+<p class="big">Slant height: <b class="l">l</b> = √(<span class="r">r</span>² + <span class="hh">h</span>²) = <b class="l">${fmt(L())}</b></p>`,
+ q:'Which is the longest: r, h or l? Why?',a:'<b class="l">l</b> is the longest. It is the hypotenuse of the right triangle made by r and h (l² = r² + h²).'},
+{title:'2. Predict!',body:()=>{const o=[['tri','Triangle'],['cir','Full circle'],['sec','Part of a circle (sector)'],['rec','Rectangle']];
+ return `<p class="big">Imagine cutting the curved surface along <b class="l">l</b> and laying it flat. <b>What shape appears?</b></p>`+o.map(([k,v])=>`<button class="opt ${S.pred==k?(k=='sec'?'ok':'no'):''}" onclick="pick('${k}')">${v}</button>`).join('')+
+ (S.pred?`<div class="fb">${S.pred=='sec'?'✅ Great prediction! Let\'s test it.':'🤔 Not quite. Keep it in mind and test it in the next step.'}</div>`:'')},
+ q:'',a:'It is a <b>sector of a circle</b>. Press Next and unroll to check! ✂️'},
+{title:'3. Cut and unroll',body:()=>`<p class="big">Press <b>Unroll</b> or drag the slider. The cut is the red dashed line.</p>`,
+ q:'Which edge of the cone becomes the curved arc?',a:'The circular edge of the base (the amber curve).'},
+{title:'4. The arc length',body:()=>`<p class="big"><span class="a"><b>Arc length</b></span> = circumference of the base</p><div class="f"><span class="a">arc</span> = 2π<span class="r">r</span></div>`,
+ q:'Why is the arc length equal to 2πr?',a:'The arc <i>is</i> the base circle’s edge, just straightened out. Nothing is stretched, so its length is the circumference 2πr.'},
+{title:'5. The sector radius',body:()=>`<p class="big">Every point on the rim is the same distance from the tip, measured along the slant.</p><div class="f">sector radius = <b class="l">l</b></div>`,
+ q:'Why does the sector’s radius equal the slant height?',a:'The sector’s centre is the cone’s tip. Unrolling keeps distances from the tip, and the rim is <b>l</b> away along the surface.'},
+{title:'6. Area of a sector',body:()=>`<div class="f">Area of sector = ${HALF} × <span class="l">radius</span> × <span class="a">arc length</span></div><p class="big">It works like a triangle with base = arc and height = radius.</p>`,
+ q:'Test it on a full circle (radius r, arc 2πr). What area do you get?',a:`${HALF} × r × 2πr = <b>πr²</b> ✔ the area of a circle.`},
+{title:'7. Substitute',body:rv=>`<p class="big">Put in <span class="l">radius = l</span> and <span class="a">arc = 2πr</span>:</p><div class="f">CSA = ${HALF} × ${rv?'<b class="l">l</b>':'<span class="blank"></span>'} × ${rv?'<b class="a">2πr</b>':'<span class="blank"></span>'}${rv?' = <b style="color:var(--pri)">πrl</b>':' = ?'}</div>${rv?`<div class="f" style="border:3px solid var(--pri)">CSA = πrl = π × ${r} × ${fmt(L())} = <b>${fmt(Math.PI*r*L())}</b> square units</div>`:'<p class="big">Fill in the blanks, then press Reveal.</p>'}`,
+ q:'Why use slant height l, not vertical height h?',a:'The surface slopes. The sector’s radius is the slant length l. The height h is inside the cone and never touches the surface.'},
+{title:'8. CSA vs total surface area',body:()=>`<div class="f"><span style="color:var(--pri)">CSA</span> = πrl</div><p class="big">The base is a flat circle of area πr².</p>`,
+ q:'What is the difference between CSA and total surface area (TSA)?',a:'CSA = curved surface only = <b>πrl</b>.<br>TSA = CSA + base = πrl + πr² = <b>πr(l + r)</b>.'},
+{title:'9. Challenge: the tent ⛺',body:()=>`<p class="big">A conical tent has radius <b class="r">3 m</b> and vertical height <b class="hh">4 m</b>. How much fabric covers the sloping surface (no floor)? Use π = 3.14.</p>
+<div class="ctl"><input type="number" id="tin" step="0.1" placeholder="area" value="${S.tent&&S.tent.v||''}"> m² <button onclick="chkTent()">Check</button></div><div class="fb" id="tfb">${S.tent?S.tent.m:''}</div>`,
+ q:'Hint: find l first.',a:'l = √(3² + 4²) = 5 m<br>CSA = πrl = 3.14 × 3 × 5 = <b>47.1 m²</b> (exactly 15π).',noScene:1},
+{title:'10. Quiz',body:()=>{const Q=quiz;return Q.map((q,i)=>`<div style="margin-bottom:10px"><b>${i+1}. ${q.q}</b>`+q.o.map((o,j)=>{const d=S.quiz[i];let c='';if(d!==null){if(j==q.c)c='ok';else if(j==d)c='no'}return `<button class="opt ${c}" ${d!==null?'disabled':''} onclick="ans(${i},${j})">${o}</button>`}).join('')+(S.quiz[i]!==null?`<div class="fb">${S.quiz[i]==q.c?'✅ Correct! ':'❌ Not quite. '}${q.e}</div>`:'')+'</div>').join('')+(S.quiz.every(x=>x!==null)?`<div class="ans big">Score: ${S.quiz.filter((x,i)=>x==quiz[i].c).length} / 3 🎉</div>`:'')},q:'',a:'',noRev:1}];
+const quiz=[
+{q:'A cone has r = 7 cm and l = 10 cm. Its CSA is…',o:['70π cm²','35π cm²','140π cm²','49π cm²'],c:0,e:'CSA = πrl = π × 7 × 10 = 70π cm².'},
+{q:'A cone has r = 6 cm and vertical height h = 8 cm. Its CSA is…',o:['48π cm²','60π cm²','80π cm²','120π cm²'],c:1,e:'l = √(36+64) = 10, so CSA = π × 6 × 10 = 60π cm².'},
+{q:'A cone has r = 3 cm and l = 5 cm. Its total surface area is…',o:['15π cm²','30π cm²','24π cm²','39π cm²'],c:2,e:'TSA = πrl + πr² = 15π + 9π = 24π cm².'}];
+function pick(k){S.pred=k;render(true)}
+function chkTent(){const v=parseFloat($('tin').value);let m;if(isNaN(v))m='Type a number.';else if(v>=46.9&&v<=47.3)m='✅ Correct! 3.14 × 3 × 5 = 47.1 m²';else if(v>=70&&v<=76)m='❌ That looks like you used h = 4 instead of l = 5.';else if(Math.abs(v-3.14*9)<.3||v>=75)m='❌ Check: l is not r or h. Find l first.';else m='❌ Try again. First l = √(r² + h²), then πrl.';S.tent={v:isNaN(v)?'':v,m};$('tfb').textContent=m}
+function ans(i,j){S.quiz[i]=j;render(true)}
+function render(keep){const s=steps[step];$('title').textContent=s.title;$('body').innerHTML=s.body(!!revealed[step]);
+ $('ans').innerHTML=(s.q?`<div class="q">❓ ${s.q}</div>`:'')+(revealed[step]?`<div class="ans">${s.a}</div>`:'');
+ $('prev').disabled=step==0;$('next').disabled=step==steps.length-1;$('rev').style.display=s.noRev?'none':'';
+ $('rev').textContent=revealed[step]?'🙈 Hide Answer':'💡 Reveal Answer';
+ $('dots').innerHTML=steps.map((_,i)=>`<i class="${i==step?'on':i<step?'done':''}"></i>`).join('');
+ $('unw').style.display=(step>=2&&step<=7)?'flex':'none';
+ if(!keep){if(step<=1)tT=0;else if(step>=3&&!s.noScene)tT=1;else if(step==8)tT=0}
+ updRead()}
+function updRead(){const l=L();[['rn',r],['hn',h],['ln',fmt(l)]].forEach(([i,v])=>{if(document.activeElement!==$(i))$(i).value=v});$('read').innerHTML=`<span style="background:var(--r)">r = ${r}</span><span style="background:var(--h)">h = ${h}</span><span style="background:var(--l)">l = ${fmt(l)}</span><span style="background:#475569">sector angle = ${fmt(360*r/l)}°</span>`}
+$('next').onclick=()=>{step++;render()};$('prev').onclick=()=>{step--;render()};
+$('rev').onclick=()=>{revealed[step]=!revealed[step];if(step==1&&revealed[step])tT=1;render(true)};
+$('reset').onclick=()=>{step=0;t=tT=0;for(const k in revealed)delete revealed[k];S.pred=null;S.tent=null;S.quiz=[null,null,null];r=3;h=4;$('rs').value=3;$('hs').value=4;yaw=.6;elev=.35;render()};
+$('rs').oninput=e=>{r=+e.target.value;render(true)};$('hs').oninput=e=>{h=+e.target.value;render(true)};
+$('ts').oninput=e=>{t=tT=+e.target.value};
+const setRH=()=>{$('rs').value=r;$('hs').value=h;$('msg').textContent='';render(true)};
+$('rn').oninput=e=>{const v=+e.target.value;if(v>0&&v<=30){r=v;setRH()}};
+$('hn').oninput=e=>{const v=+e.target.value;if(v>0&&v<=30){h=v;setRH()}};
+$('ln').oninput=e=>{const v=+e.target.value;if(v>r&&v<=40){h=Math.sqrt(v*v-r*r);setRH()}else if(v>0)$('msg').textContent=v>40?'l must be 40 or less':'l must be longer than r ('+r+')'};
+$('play').onclick=()=>{tT=tT>.5?0:1};
+/* ---------- 3D drawing ---------- */
+const cv=$('cv'),ctx=cv.getContext('2d');let W=0,H=0,dpr=1;
+function size(){dpr=window.devicePixelRatio||1;const b=cv.getBoundingClientRect();W=b.width;H=b.height;cv.width=W*dpr;cv.height=H*dpr}
+new ResizeObserver(size).observe(cv);size();
+let drag=null;
+cv.onpointerdown=e=>{drag=[e.clientX,e.clientY];cv.setPointerCapture(e.pointerId);cv.style.cursor='grabbing'};
+cv.onpointerup=()=>{drag=null;cv.style.cursor='grab'};
+cv.onpointermove=e=>{if(!drag)return;yaw+=(e.clientX-drag[0])*.01;elev=Math.max(-.3,Math.min(1.4,elev+(e.clientY-drag[1])*.01));drag=[e.clientX,e.clientY]};
+function fcx(l){const th=2*Math.PI*r/l;return (l+(th/2>=Math.PI/2?l*Math.cos(th/2):0))/2}
+function P(s,psi,tt){const l=L(),b0=Math.asin(r/l),b=b0+(Math.PI/2-b0)*tt,sb=Math.sin(b),ph=psi/sb;return[s*sb*Math.cos(ph)-tt*fcx(l),s*sb*Math.sin(ph),h-s*Math.cos(b)-h/2]}
+let cam;
+function V(p){const x=p[0]*cam.cy-p[1]*cam.sy,y=p[0]*cam.sy+p[1]*cam.cy,z=p[2];return{x:W/2+x*cam.sc,y:H/2-(y*cam.se+z*cam.ce)*cam.sc,d:-y*cam.ce+z*cam.se,u:x,v:y*cam.se+z*cam.ce}}
+function pill(txt,x,y,col,al){ctx.save();ctx.globalAlpha=al;ctx.globalAlpha=al*.85;ctx.font='bold 9px system-ui,sans-serif';const w=ctx.measureText(txt).width+6;ctx.fillStyle=col;ctx.beginPath();ctx.roundRect(x-w/2,y-6,w,12,3);ctx.fill();ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(txt,x,y+1);ctx.restore()}
+function poly(pts,col,w,dash,al=1){ctx.save();ctx.globalAlpha=al;ctx.strokeStyle=col;ctx.lineWidth=w;ctx.lineCap='round';ctx.setLineDash(dash||[]);ctx.beginPath();pts.forEach((p,i)=>{const q=V(p);i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y)});ctx.stroke();ctx.restore()}
+function frame(){
+ t+=(tT-t)*.09;if(Math.abs(tT-t)<.002)t=tT;$('ts').value=t;
+ const l=L(),th=2*Math.PI*r/l,e=t*t*(3-2*t);
+ const el=elev+(1.45-elev)*e,ya=yaw*(1-e);
+ const sc0=Math.min(W,H)*.4/Math.max(l,h*1.2),xm=th/2>=Math.PI/2?l*Math.cos(th/2):0,fw=l-xm,fh=2*(th/2>=Math.PI/2?l:l*Math.sin(th/2)),scF=.85*Math.min(W/fw,H/fh);
+ cam={cy:Math.cos(ya),sy:Math.sin(ya),se:Math.sin(el),ce:Math.cos(el),sc:sc0+(scF-sc0)*e};
+ ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+ const items=[],N=10,M=56,L0=[.4,.6,.7],ln=Math.hypot(...L0);
+ for(let i=0;i<N;i++)for(let j=0;j<M;j++){
+  const s0=l*i/N,s1=l*(i+1)/N,p0=-th/2+th*j/M,p1=-th/2+th*(j+1)/M;
+  const q=[V(P(s0,p0,t)),V(P(s1,p0,t)),V(P(s1,p1,t)),V(P(s0,p1,t))];
+  const d=(q[0].d+q[1].d+q[2].d+q[3].d)/4;
+  items.push({d,q,k:(i+j)%2});}
+ if(t<.98){const q=[];for(let a=0;a<48;a++){const A=a/48*2*Math.PI;q.push(V([r*Math.cos(A)-t*fcx(l),r*Math.sin(A),-h/2]))}items.push({d:q.reduce((s,p)=>s+p.d,0)/48-.01,q,disc:1})}
+ items.sort((a,b)=>a.d-b.d);
+ for(const it of items){ctx.beginPath();it.q.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.closePath();
+  if(it.disc){ctx.fillStyle=`rgba(120,135,160,${.55*(1-t)})`;ctx.fill();continue}
+  const [a,b,c,d]=it.q;const ux=c.u-a.u,uv=c.v-a.v,ud=c.d-a.d,wx=d.u-b.u,wv=d.v-b.v,wd=d.d-b.d;
+  let nx=uv*wd-ud*wv,ny=ud*wx-ux*wd,nz=ux*wv-uv*wx;const nl=Math.hypot(nx,ny,nz)||1;
+  const lum=Math.abs((nx*L0[0]+ny*L0[1]+nz*L0[2])/(nl*ln));
+  ctx.fillStyle=`hsl(${205+it.k*6},72%,${34+42*lum}%)`;ctx.fill();ctx.strokeStyle='rgba(255,255,255,.25)';ctx.lineWidth=.6;ctx.stroke()}
+ /* overlays */
+ const sx=-t*l*.5,ar=Math.max(0,1-t*6),sp=n=>Array.from({length:n+1},(_,i)=>i/n);
+ if(step>=2&&step<=4){[-th/2,th/2].forEach(p=>poly([P(0,p,t),P(l,p,t)],'#ff2d55',3.5,[8,6]));const c=V(P(.62*l,th/2,t));pill('cut',c.x,c.y,'#ff2d55',1)}
+ poly(sp(60).map(k=>P(l,-th/2+th*k,t)),'#e59a00',step==3?9:4);
+ poly([P(0,0,t),P(l,0,t)],'#7b3fe4',step==4?9:4);
+ if(ar>0){poly([[0,0,h/2],[0,0,-h/2]],'#1f9d55',4,[9,6],ar);poly([[0,0,-h/2],[r,0,-h/2]],'#e4572e',4,[9,6],ar);
+  let c=V([0,0,0]);pill('h = '+h,c.x,c.y,'#1f9d55',ar);c=V([r/2,0,-h/2]);pill('r = '+r,c.x,c.y+(el>.9?0:9),'#e4572e',ar)}
+ let c=V(P(.55*l,0,t));pill(t<.5?'l = '+fmt(l):'l',c.x,c.y-(1-e)*8,'#7b3fe4',1);
+ if(t>.5||step>=3){c=V(P(l,0,t));const f=t<.5?1:0;pill('arc = 2πr',c.x+(1-f)*(Math.min(45,W*.05)),c.y+f*10,'#e59a00',1)}
+ requestAnimationFrame(frame)}
+render();frame();
+</script></body></html>
